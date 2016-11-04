@@ -72,16 +72,31 @@ class BaseForm(object):
         """ Remove a field from this form. """
         del self._fields[name]
 
-    def populate_obj(self, obj):
+    def populate_obj(self, obj, only=None, exclude=None):
         """
         Populates the attributes of the passed `obj` with data from the form's
         fields.
 
+        :param only:
+            An optional iterable with the field names that should be populated in
+            the object. Only these fields will be populated.
+        :param exclude:
+            An optional iterable with the field names that should be excluded
+            from populating the object. All other fields will be populated.
+
         :note: This is a destructive operation; Any attribute with the same name
                as a field will be overridden. Use with caution.
         """
+
+        field_names = list(name for name, _ in iteritems(self._fields))
+        if only:
+            field_names = list(f for f in only if f in field_names)
+        elif exclude:
+            field_names = list(f for f in field_names if f not in exclude)
+
         for name, field in iteritems(self._fields):
-            field.populate_obj(obj, name)
+            if name in field_names:
+                field.populate_obj(obj, name)
 
     def process(self, formdata=None, obj=None, data=None, **kwargs):
         """

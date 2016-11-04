@@ -59,14 +59,6 @@ class BaseFormTest(TestCase):
         self.assertEqual(form['test'].data, 1)
         self.assertEqual(form['foo'].data, '')
 
-    def test_populate_obj(self):
-        m = type(str('Model'), (object, ), {})
-        form = self.get_form()
-        form.process(test='foobar')
-        form.populate_obj(m)
-        self.assertEqual(m.test, 'foobar')
-        self.assertEqual([k for k in dir(m) if not k.startswith('_')], ['test'])
-
     def test_prefixes(self):
         form = self.get_form(prefix='foo')
         self.assertEqual(form['test'].name, 'foo-test')
@@ -251,3 +243,36 @@ class MetaTest(TestCase):
             self.G.Meta,
             DefaultMeta
         ))
+
+
+class PopulateTest(TestCase):
+    class F(Form):
+        test = StringField()
+        other = StringField()
+
+    def test_populate_obj(self):
+        m = type(str('Model'), (object, ), {})
+        form = self.F()
+        form.process(test='foobar', other='other')
+        form.populate_obj(m)
+        self.assertEqual(m.test, 'foobar')
+        self.assertEqual(m.other, 'other')
+        self.assertEqual(sorted(k for k in dir(m) if not k.startswith('_')), ['other', 'test'])
+
+    def test_populate_obj_only(self):
+        m = type(str('Model'), (object, ), {})
+        form = self.F()
+        form.process(test='foobar', other='other')
+        form.populate_obj(m, only=['other'])
+        self.assertEqual(hasattr(m, 'test'), False)
+        self.assertEqual(m.other, 'other')
+        self.assertEqual([k for k in dir(m) if not k.startswith('_')], ['other'])
+
+    def test_populate_obj_exclude(self):
+        m = type(str('Model'), (object, ), {})
+        form = self.F()
+        form.process(test='foobar')
+        form.populate_obj(m, exclude=['other'])
+        self.assertEqual(m.test, 'foobar')
+        self.assertEqual(hasattr(m, 'other'), False)
+        self.assertEqual([k for k in dir(m) if not k.startswith('_')], ['test'])
